@@ -3,6 +3,7 @@
 ---@field hide_ln_numbers boolean
 ---@field no_rounded_corners boolean
 ---@field hide_controls boolean
+---@field hide_window_title boolean
 ---@field background_colour string
 ---@field background_image string?
 ---@field line_offset number
@@ -15,7 +16,8 @@
 ---@field shadow_offset_y number
 ---@field tab_width number
 ---@field theme string
----@field default_path string
+---@field default_path string | fun(buffer: number):string
+---@field window_title string | fun(buffer: number):string
 
 ---@class snap.do.opts
 ---@field type "clipboard" | "file"
@@ -42,6 +44,7 @@ M.opts = {
 	hide_ln_numbers = false,
 	no_rounded_corners = false,
 	hide_controls = false,
+	hide_window_title = false,
 	background_colour = "#aaaaff",
 	background_image = nil,
 	line_offset = 1,
@@ -55,6 +58,7 @@ M.opts = {
 	tab_width = 4,
 	theme = "Dracula",
 	default_path = vim.fn.getcwd() .. "/" .. uuid(),
+	window_title = "%:t",
 }
 
 local helpers = require("snap.helpers")
@@ -69,7 +73,7 @@ end
 
 local function insert_all(list, ...)
 	for i = 1, select("#", ...) do
-    local value = select(i, ...)
+		local value = select(i, ...)
 		table.insert(list, value)
 	end
 end
@@ -103,6 +107,16 @@ local function buildCommand(opts)
 
 	if M.opts.hide_controls then
 		table.insert(command, "--no-window-controls")
+	end
+
+	if not M.opts.hide_window_title then
+		table.insert(command, "--window-title")
+		if type(M.opts.window_title) == "function" then
+			table.insert(command, M.opts.window_title(vim.api.nvim_get_current_buf()))
+		else
+			assert(type(M.opts.window_title) == "string", "Window title must be a function or string.")
+			table.insert(command, vim.fn.expand(M.opts.window_title))
+		end
 	end
 
 	insert_all(command, "--theme", M.opts.theme)
@@ -141,10 +155,18 @@ function M.silicon(options)
 	end
 
 	local highlightedText = helpers.appendTableEntries(helpers.getHighlightedLines(), "\n")
+	local default_path = ""
+
+	if type(M.opts.default_path) == "function" then
+		default_path = M.opts.default_path(vim.api.nvim_get_current_buf())
+	else
+		assert(type(M.opts.default_path) == "string", "Default path must be a function or string.")
+		default_path = vim.fn.expand(M.opts.default_path)
+	end
 
 	local defaults = {
 		type = M.opts.default_action,
-		file_path = M.opts.default_path,
+		file_path = default_path,
 	}
 
 	if opts == nil then
