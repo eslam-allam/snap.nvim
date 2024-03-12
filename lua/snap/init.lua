@@ -57,7 +57,7 @@ M.opts = {
 	shadow_offset_y = 0,
 	tab_width = 4,
 	theme = "Dracula",
-	default_path = vim.fn.getcwd() .. "/" .. uuid(),
+	default_path = function(_) return vim.fn.getcwd() .. "/" .. uuid() end,
 	window_title = "%:t",
 }
 
@@ -70,7 +70,6 @@ function M.setup(opts)
 	end, {})
 	if vim.fn.executable("silicon") ~= 1 then
 		vim.notify("[Snap] silicon is not installed. Run SiliconBuild to install it.", 4)
-		return
 	end
 	if opts ~= nil then
 		M.opts = vim.tbl_deep_extend("force", M.opts, opts)
