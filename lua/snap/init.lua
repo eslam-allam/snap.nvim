@@ -63,13 +63,16 @@ M.opts = {
 
 local helpers = require("snap.helpers")
 
+
+vim.api.nvim_create_user_command("SiliconBuild", function()
+  require("snap.build").build()
+end, {})
+
 ---@param opts snap.opts?
 function M.setup(opts)
-	vim.api.nvim_create_user_command("SiliconBuild", function()
-		require("snap.build").build()
-	end, {})
 	if vim.fn.executable("silicon") ~= 1 then
 		vim.notify("[Snap] silicon is not installed. Run SiliconBuild to install it.", 4)
+		return
 	end
 	if opts ~= nil then
 		M.opts = vim.tbl_deep_extend("force", M.opts, opts)

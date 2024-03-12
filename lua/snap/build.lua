@@ -18,13 +18,14 @@ function M.build()
 		if hasNvimNotify and not notif_data.done and notif_data.spinner ~= nil then
 			local new_spinner = (notif_data.spinner + 1) % #spinner_frames
 			notif_data.spinner = new_spinner
-
-			notif_data.notification = vim.notify(nil, nil, {
-				hide_from_history = true,
-				icon = spinner_frames[new_spinner],
-				replace = notif_data.notification,
-				title = notif_data.title,
-			})
+			pcall(function()
+				notif_data.notification = vim.notify(nil, nil, {
+					hide_from_history = true,
+					icon = spinner_frames[new_spinner],
+					replace = notif_data.notification,
+					title = notif_data.title,
+				})
+			end)
 
 			vim.defer_fn(function()
 				update_spinner(notif_data)
@@ -66,8 +67,10 @@ function M.build()
 		2,
 		notify_opts
 	)
-	update_spinner(notif_data)
 
+	if hasNvimNotify then
+		update_spinner(notif_data)
+	end
 	vim.fn.jobstart({ "cargo", "install", "silicon" }, {
 
 		on_stderr = function(_, data, _)
@@ -76,7 +79,13 @@ function M.build()
 					return
 				end
 				notify_opts = { title = title, replace = notif_data.notification }
-				notif_data.notification = vim.notify(table.concat(data, " ") .. "...", 2, notify_opts)
+				local concated, msg = pcall(function()
+					return table.concat(data, " ")
+				end)
+
+				if concated then
+					notif_data.notification = vim.notify(msg .. "...", 2, notify_opts)
+				end
 			end)
 		end,
 		on_stdout = function(_, data, _)
@@ -85,7 +94,12 @@ function M.build()
 					return
 				end
 				notify_opts = { title = title, replace = notif_data.notification }
-				notif_data.notification = vim.notify(table.concat(data, " ") .. "...", 2, notify_opts)
+				local concated, msg = pcall(function()
+					return table.concat(data, " ")
+				end)
+				if concated then
+					notif_data.notification = vim.notify(msg .. "...", 2, notify_opts)
+				end
 			end)
 		end,
 		on_exit = function(_, code, _)
