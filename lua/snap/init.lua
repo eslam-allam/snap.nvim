@@ -65,6 +65,9 @@ local helpers = require("snap.helpers")
 
 ---@param opts snap.opts?
 function M.setup(opts)
+  if vim.fn.executable('silicon') ~= 1 then
+    error("[Snap] silicon is not installed.")
+  end
 	if opts ~= nil then
 		M.opts = vim.tbl_deep_extend("force", M.opts, opts)
 	end
@@ -94,9 +97,9 @@ local function buildCommand(opts)
 
 	if opts.type == "file" then
 		action = "saved image to " .. opts.file_path
-		insert_all(command, "-o", opts.file_path)
+		insert_all(command, "-o", helpers.quote(opts.file_path))
 	end
-	insert_all(command, "--language", tostring(vim.bo.filetype))
+	insert_all(command, "--language", helpers.quote(tostring(vim.bo.filetype)))
 	if M.opts.hide_ln_numbers then
 		table.insert(command, "--no-line-number")
 	end
@@ -112,27 +115,27 @@ local function buildCommand(opts)
 	if not M.opts.hide_window_title then
 		table.insert(command, "--window-title")
 		if type(M.opts.window_title) == "function" then
-			table.insert(command, M.opts.window_title(vim.api.nvim_get_current_buf()))
+			table.insert(command, helpers.quote(M.opts.window_title(vim.api.nvim_get_current_buf())))
 		else
 			assert(type(M.opts.window_title) == "string", "Window title must be a function or string.")
-			table.insert(command, vim.fn.expand(M.opts.window_title))
+			table.insert(command, helpers.quote(vim.fn.expand(M.opts.window_title)))
 		end
 	end
 
-	insert_all(command, "--theme", M.opts.theme)
+	insert_all(command, "--theme", helpers.quote(M.opts.theme))
 	insert_all(command, "--line-offset", M.opts.line_offset)
 	insert_all(command, "--line-pad", M.opts.line_pad)
 	insert_all(command, "--pad-horiz", M.opts.pad_h)
 	insert_all(command, "--pad-vert", M.opts.pad_v)
 	insert_all(command, "--shadow-blur-radius", M.opts.shadow_blur_radius)
-	insert_all(command, "--shadow-color", M.opts.shadow_color)
+	insert_all(command, "--shadow-color", helpers.quote(M.opts.shadow_color))
 	insert_all(command, "--shadow-offset-x", M.opts.shadow_offset_x)
 	insert_all(command, "--shadow-offset-y", M.opts.shadow_offset_y)
 	insert_all(command, "--tab-width", M.opts.tab_width)
-	insert_all(command, "--background", M.opts.background_colour)
+	insert_all(command, "--background", helpers.quote(M.opts.background_colour))
 
 	if M.opts.background_image ~= nil then
-		insert_all(command, "--background-image", M.opts.background_image)
+		insert_all(command, "--background-image", helpers.quote(M.opts.background_image))
 	end
 
 	return table.concat(command, " "), action

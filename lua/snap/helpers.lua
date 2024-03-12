@@ -3,6 +3,11 @@ local random = math.random
 
 local M = {}
 
+---@param value string
+function M.quote(value)
+  return "'" .. value .. "'"
+end
+
 function M.File_exists(name)
   local f = io.open(name, "r")
   if f ~= nil then
