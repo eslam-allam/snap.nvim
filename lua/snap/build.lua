@@ -16,16 +16,22 @@ function M.build()
 
 	local function update_spinner(notif_data) -- update spinner helper function to defer
 		if hasNvimNotify and not notif_data.done and notif_data.spinner ~= nil then
-			local new_spinner = (notif_data.spinner + 1) % #spinner_frames
-			notif_data.spinner = new_spinner
-			pcall(function()
-				notif_data.notification = vim.notify(nil, nil, {
-					hide_from_history = true,
-					icon = spinner_frames[new_spinner],
-					replace = notif_data.notification,
-					title = notif_data.title,
-				})
-			end)
+			if notif_data.notification ~= nil then
+				local new_spinner = (notif_data.spinner + 1) % #spinner_frames
+				local ok, notification = pcall(function()
+					return vim.notify(nil, nil, {
+						hide_from_history = true,
+						icon = spinner_frames[new_spinner],
+						replace = notif_data.notification,
+						title = notif_data.title,
+					})
+				end)
+
+				if ok then
+					notif_data.notification = notification
+					notif_data.spinner = new_spinner
+				end
+			end
 
 			vim.defer_fn(function()
 				update_spinner(notif_data)
@@ -78,12 +84,12 @@ function M.build()
 				if vim.tbl_isempty(notif_data) then
 					return
 				end
-				notify_opts = { title = title, replace = notif_data.notification }
 				local concated, msg = pcall(function()
 					return table.concat(data, " ")
 				end)
 
 				if concated then
+					notify_opts = { title = title, replace = notif_data.notification }
 					notif_data.notification = vim.notify(msg .. "...", 2, notify_opts)
 				end
 			end)
@@ -93,11 +99,11 @@ function M.build()
 				if vim.tbl_isempty(notif_data) then
 					return
 				end
-				notify_opts = { title = title, replace = notif_data.notification }
 				local concated, msg = pcall(function()
 					return table.concat(data, " ")
 				end)
 				if concated then
+					notify_opts = { title = title, replace = notif_data.notification }
 					notif_data.notification = vim.notify(msg .. "...", 2, notify_opts)
 				end
 			end)
