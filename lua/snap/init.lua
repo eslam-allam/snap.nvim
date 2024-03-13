@@ -38,7 +38,6 @@ end
 
 M = {}
 
----@type snap.opts
 M.opts = {
 	default_action = "clipboard",
 	hide_ln_numbers = false,
@@ -66,12 +65,19 @@ M.opts = {
 M.themes = {}
 
 local helpers = require("snap.helpers")
+local silicon = require("snap.silicon")
 
 ---@param opts snap.opts
 local function check_opts(opts)
-	helpers.assert(opts.theme, function(x)
+	return helpers.assert(opts.theme, function(x)
 		return helpers.contains(M.themes, x)
-	end, "[Snap] Invalid theme '" .. opts.theme .. "'. Must be one of " .. vim.inspect(M.themes))
+	end, "[Snap] Invalid theme '" .. opts.theme .. "'. Must be one of " .. table.concat(M.themes, ", ")) and helpers.assert(
+		opts.default_path,
+		function(x)
+			return type(x) == "function" or type(x) == "string"
+		end,
+		"[Snap] Invalid default_path. Must be a function or string."
+	)
 end
 
 ---@param opts snap.opts?
@@ -80,11 +86,13 @@ function M.setup(opts)
 		vim.notify("[Snap] silicon is not installed. Run SiliconBuild to install it.", 4)
 		return
 	end
-	M.themes = require("snap.silicon").list_themes()
+	M.themes = silicon.list_themes()
 	if opts ~= nil then
 		M.opts = vim.tbl_deep_extend("force", M.opts, opts)
 	end
-	check_opts(M.opts)
+	if not check_opts(M.opts) then
+		return
+	end
 	vim.api.nvim_create_user_command("Silicon", M.silicon, { nargs = "*" })
 end
 

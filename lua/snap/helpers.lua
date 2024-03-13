@@ -224,7 +224,9 @@ end
 ---@param message string
 function M.assert(value, condition, message)
   if not condition(value) then
-    error(message)
+    vim.notify(message, 4)
+    return false
   end
+  return true
 end
 return M
