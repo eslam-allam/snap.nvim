@@ -218,4 +218,13 @@ function M.User_configured_gradlew(root)
   end
   return vim.fn.findfile("gradlew", root)
 end
+
+---@param value any
+---@param condition fun(value:any):boolean
+---@param message string
+function M.assert(value, condition, message)
+  if not condition(value) then
+    error(message)
+  end
+end
 return M

@@ -63,7 +63,16 @@ M.opts = {
 	window_title = "%:t",
 }
 
+M.themes = {}
+
 local helpers = require("snap.helpers")
+
+---@param opts snap.opts
+local function check_opts(opts)
+	helpers.assert(opts.theme, function(x)
+		return helpers.contains(M.themes, x)
+	end, "[Snap] Invalid theme '" .. opts.theme .. "'. Must be one of " .. vim.inspect(M.themes))
+end
 
 ---@param opts snap.opts?
 function M.setup(opts)
@@ -71,9 +80,11 @@ function M.setup(opts)
 		vim.notify("[Snap] silicon is not installed. Run SiliconBuild to install it.", 4)
 		return
 	end
+	M.themes = require("snap.silicon").list_themes()
 	if opts ~= nil then
 		M.opts = vim.tbl_deep_extend("force", M.opts, opts)
 	end
+	check_opts(M.opts)
 	vim.api.nvim_create_user_command("Silicon", M.silicon, { nargs = "*" })
 end
 
