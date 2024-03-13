@@ -43,10 +43,20 @@ function M.build()
 	local notif_data = { spinner = 1, done = false, title = title }
 	local notify_opts = {}
 
-	local function buildCallback(code)
-		if code ~= 0 and not vim.tbl_isempty(notif_data) then
+	local function handle_command_stream(error, data)
+		vim.schedule(function()
+			if vim.tbl_isempty(notif_data) then
+				return
+			end
+			notify_opts = { title = title, replace = notif_data.notification }
+			notif_data.notification = vim.notify(data .. "...", 2, notify_opts)
+		end)
+	end
+
+	local function buildCallback(result)
+		if result.code ~= 0 and not vim.tbl_isempty(notif_data) then
 			notif_data.notification = vim.notify(
-				"Failed to build silicon. Exit code: " .. code,
+				"Failed to build silicon. Exit code: " .. result.code,
 				4,
 				{ icon = "🞮", replace = notif_data.notification, timeout = 3000, title = "[Snap Build]" }
 			)
@@ -77,40 +87,14 @@ function M.build()
 	if hasNvimNotify then
 		update_spinner(notif_data)
 	end
-	vim.fn.jobstart({ "cargo", "install", "silicon" }, {
 
-		on_stderr = function(_, data, _)
-			vim.schedule(function()
-				if vim.tbl_isempty(notif_data) then
-					return
-				end
-				local concated, msg = pcall(function()
-					return table.concat(data, " ")
-				end)
+	vim.system({ "cargo", "install", "silicon" }, {
 
-				if concated then
-					notify_opts = { title = title, replace = notif_data.notification }
-					notif_data.notification = vim.notify(msg .. "...", 2, notify_opts)
-				end
-			end)
-		end,
-		on_stdout = function(_, data, _)
+		stderr = handle_command_stream,
+		stdout = handle_command_stream,
+		on_exit = function(result)
 			vim.schedule(function()
-				if vim.tbl_isempty(notif_data) then
-					return
-				end
-				local concated, msg = pcall(function()
-					return table.concat(data, " ")
-				end)
-				if concated then
-					notify_opts = { title = title, replace = notif_data.notification }
-					notif_data.notification = vim.notify(msg .. "...", 2, notify_opts)
-				end
-			end)
-		end,
-		on_exit = function(_, code, _)
-			vim.schedule(function()
-				buildCallback(code)
+				buildCallback(result)
 			end)
 		end,
 	})
