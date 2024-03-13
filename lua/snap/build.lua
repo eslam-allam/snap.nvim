@@ -43,13 +43,17 @@ function M.build()
 	local notif_data = { spinner = 1, done = false, title = title }
 	local notify_opts = {}
 
+  ---@param data string|nil
 	local function handle_command_stream(error, data)
+    if data == nil then
+      return
+    end
 		vim.schedule(function()
 			if vim.tbl_isempty(notif_data) then
 				return
 			end
 			notify_opts = { title = title, replace = notif_data.notification }
-			notif_data.notification = vim.notify(data .. "...", 2, notify_opts)
+			notif_data.notification = vim.notify(data:gsub("(?:%s+$)|(?:^%s+)", "") .. "...", 2, notify_opts)
 		end)
 	end
 
