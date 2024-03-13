@@ -36,7 +36,7 @@ local function uuid()
 	)
 end
 
-M = {}
+local M = {}
 
 M.opts = {
 	default_action = "clipboard",

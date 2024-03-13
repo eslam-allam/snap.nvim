@@ -1,4 +1,4 @@
-M = {}
+local M = {}
 
 function M.list_themes()
 	local result = vim.system({ "silicon", "--list-themes" }):wait()
