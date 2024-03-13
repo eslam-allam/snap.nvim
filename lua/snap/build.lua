@@ -65,7 +65,7 @@ local function buildCallback(result)
 	end
 end
 
-function M.build()
+local function build()
 	if vim.fn.executable("cargo") ~= 1 then
 		error("[Snap] `cargo` not found in $PATH")
 	end
@@ -99,6 +99,10 @@ function M.build()
 			buildCallback(result)
 		end)
 	end)
+end
+
+function M.build()
+	vim.schedule(build)
 end
 
 return M
