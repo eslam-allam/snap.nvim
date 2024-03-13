@@ -66,6 +66,8 @@ M.themes = {}
 
 local helpers = require("snap.helpers")
 local silicon = require("snap.silicon")
+local build_command = "SnapBuild"
+local opts_configured = false
 
 ---@param opts snap.opts
 local function check_opts(opts)
@@ -82,18 +84,24 @@ end
 
 ---@param opts snap.opts?
 function M.setup(opts)
+	vim.api.nvim_create_user_command(build_command, function()
+		require("snap.build").build()
+	end, {})
+
+	vim.api.nvim_create_user_command("Snap", M.silicon, { nargs = "*" })
+
 	if vim.fn.executable("silicon") ~= 1 then
-		vim.notify("[Snap] silicon is not installed. Run SiliconBuild to install it.", 4)
+		vim.notify("[Snap] silicon is not installed. Run " .. build_command .. " to install it.", 4)
 		return
 	end
 	M.themes = silicon.list_themes()
 	if opts ~= nil then
-		M.opts = vim.tbl_deep_extend("force", M.opts, opts)
+		local merged_opts = vim.tbl_deep_extend("force", M.opts, opts)
+		if check_opts(opts) then
+			M.opts = merged_opts
+			opts_configured = true
+		end
 	end
-	if not check_opts(M.opts) then
-		return
-	end
-	vim.api.nvim_create_user_command("Silicon", M.silicon, { nargs = "*" })
 end
 
 local function insert_all(list, ...)
@@ -164,6 +172,24 @@ local function buildCommand(opts)
 end
 
 function M.silicon(options)
+	if vim.fn.executable("silicon") ~= 1 then
+		local result = vim.fn.input({
+			prompt = "[Silicon] silicon is not installed. Would you like to install it. (y/n): ",
+			cancel_return = "n",
+		})
+		if not helpers.contains({ "y", "n" }, result) then
+			vim.notify("[Snap] invalid response", 4)
+		end
+		if result == "y" then
+			vim.cmd("SnapBuild")
+		end
+		return
+	end
+
+	if not opts_configured then
+		vim.notify("[Snap] Snap is not configured. Using default options.", vim.log.levels.WARN)
+	end
+
 	if not helpers.contains({ "v", "vs", "V", "Vs", "CTRL+V", "CTRL+Vs" }, vim.fn.mode()) then
 		vim.notify("[Silicon] not in visual mode!", 4)
 		return

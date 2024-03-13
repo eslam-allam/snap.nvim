@@ -1,3 +1,5 @@
+local M = {}
+
 local spinner_frames = { "⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷" } -- spinners
 local hasNvimNotify, _ = pcall(require, "notify")
 local title = hasNvimNotify and "[Snap] Installing silicon using cargo..." or "[Snap]"
@@ -55,7 +57,7 @@ local function buildCallback(result)
 	end
 	if not vim.tbl_isempty(notif_data) then
 		notif_data.notification = vim.notify(
-			"Silicon installed successfully. Restart NeoVim for changes to take effect.",
+			"Silicon installed successfully. Restart NeoVim to apply your config.",
 			2,
 			{ icon = "", replace = notif_data.notification, timeout = 3000, title = "[Snap Build]" }
 		)
@@ -63,7 +65,7 @@ local function buildCallback(result)
 	end
 end
 
-local function build()
+function M.build()
 	if vim.fn.executable("cargo") ~= 1 then
 		error("[Snap] `cargo` not found in $PATH")
 	end
@@ -99,4 +101,4 @@ local function build()
 	end)
 end
 
-vim.schedule(build)
+return M
