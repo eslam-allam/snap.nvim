@@ -1,5 +1,3 @@
-M = {}
-
 local spinner_frames = { "⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷" } -- spinners
 local hasNvimNotify, _ = pcall(require, "notify")
 local title = hasNvimNotify and "[Snap] Installing silicon using cargo..." or "[Snap]"
@@ -101,8 +99,4 @@ local function build()
 	end)
 end
 
-function M.build()
-	vim.schedule(build)
-end
-
-return M
+vim.schedule(build)
