@@ -53,7 +53,7 @@ function M.build()
 				return
 			end
 			notify_opts = { title = title, replace = notif_data.notification }
-			notif_data.notification = vim.notify(data:gsub("(?:%s+$)|(?:^%s+)", "") .. "...", 2, notify_opts)
+			notif_data.notification = vim.notify(string.gsub(data, "%s+$", "") .. "...", 2, notify_opts)
 		end)
 	end
 
