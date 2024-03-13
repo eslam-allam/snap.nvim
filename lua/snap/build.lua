@@ -43,11 +43,11 @@ function M.build()
 	local notif_data = { spinner = 1, done = false, title = title }
 	local notify_opts = {}
 
-  ---@param data string|nil
+	---@param data string|nil
 	local function handle_command_stream(error, data)
-    if data == nil then
-      return
-    end
+		if data == nil then
+			return
+		end
 		vim.schedule(function()
 			if vim.tbl_isempty(notif_data) then
 				return
@@ -96,12 +96,11 @@ function M.build()
 
 		stderr = handle_command_stream,
 		stdout = handle_command_stream,
-		on_exit = function(result)
-			vim.schedule(function()
-				buildCallback(result)
-			end)
-		end,
-	})
+	}, function(result)
+		vim.schedule(function()
+			buildCallback(result)
+		end)
+	end)
 end
 
 return M
