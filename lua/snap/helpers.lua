@@ -59,8 +59,8 @@ function M.appendTableEntries(table, joinChar)
   return result
 end
 
-function M.expandAndAbsolute(fname)
-  return PlenaryPath:new(PlenaryPath:new(fname):expand()):absolute()
+function M.absolutePath(fname)
+  return PlenaryPath:new(fname):absolute()
 end
 
 function M.uuid()
@@ -124,7 +124,7 @@ function M.silicon(options)
 
   opts = vim.tbl_deep_extend("keep", opts, defaults)
 
-  opts.file_path = M.appendExtension(M.expandAndAbsolute(opts.file_path), ".png")
+  opts.file_path = M.appendExtension(M.absolutePath(opts.file_path), ".png")
 
   local command = "silicon "
 

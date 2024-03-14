@@ -16,7 +16,7 @@
 ---@field shadow_offset_y number
 ---@field tab_width number
 ---@field theme string
----@field default_path string | fun(buffer: number):string
+---@field default_path string | fun(buffer: number):string If string then it is path to a directory. If function then it must return the path including the file name. Both paths may be relative and may use modifiers to be expanded by |expand()|.
 ---@field window_title string | fun(buffer: number):string
 
 ---@class snap.do.opts
@@ -58,7 +58,7 @@ M.opts = {
 	tab_width = 4,
 	theme = "Dracula",
 	default_path = function(_)
-		return vim.fn.getcwd() .. "/" .. uuid()
+		return vim.fn.getcwd() .. "/" .. uuid() .. ".png"
 	end,
 	window_title = "%:t",
 }
@@ -229,7 +229,7 @@ function M.silicon(options)
 		default_path = M.opts.default_path(vim.api.nvim_get_current_buf())
 	else
 		assert(type(M.opts.default_path) == "string", "Default path must be a function or string.")
-		default_path = vim.fn.expand(M.opts.default_path)
+		default_path = vim.fn.expand(M.opts.default_path):gsub("[\\/]+$", "") .. "/" .. helpers.uuid() .. ".png"
 	end
 
 	local defaults = {
@@ -243,7 +243,8 @@ function M.silicon(options)
 
 	opts = vim.tbl_deep_extend("keep", opts, defaults)
 
-	opts.file_path = helpers.appendExtension(helpers.expandAndAbsolute(opts.file_path), ".png")
+	opts.file_path = helpers.absolutePath(opts.file_path)
+	vim.fn.mkdir(opts.file_path:gsub("[^/\\]+$", ""), "p")
 
 	local command, action = buildCommand(opts)
 
