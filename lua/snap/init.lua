@@ -222,7 +222,7 @@ function M.silicon(options)
 		opts = vim.tbl_extend("keep", opts, { [split_table[1]] = split_table[2] })
 	end
 
-	local highlightedText = helpers.appendTableEntries(helpers.getHighlightedLines(), "\n")
+	local highlightedText = table.concat(helpers.getHighlightedLines(), "\n")
 	local default_path = ""
 
 	if type(M.opts.default_path) == "function" then
