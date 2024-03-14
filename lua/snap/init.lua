@@ -105,22 +105,6 @@ local function mergeOpts(opts)
 	return true
 end
 
----@param opts snap.opts?
-function M.setup(opts)
-	vim.api.nvim_create_user_command(build_command, function()
-		require("snap.build").build()
-	end, {})
-
-	vim.api.nvim_create_user_command("Snap", M.silicon, { nargs = "*" })
-
-	if vim.fn.executable("silicon") ~= 1 then
-		vim.notify("[Snap] silicon is not installed. Run " .. build_command .. " to install it.", 4)
-		return
-	end
-	M.themes = silicon.list_themes()
-	opts_configured = mergeOpts(opts)
-end
-
 local function insert_all(list, ...)
 	for i = 1, select("#", ...) do
 		local value = select(i, ...)
@@ -188,7 +172,7 @@ local function buildCommand(opts)
 	return command, action
 end
 
-function M.silicon(options)
+local function takeSnap(options)
 	if vim.fn.executable("silicon") ~= 1 then
 		local result = vim.fn.input({
 			prompt = "[Snap] silicon is not installed. Would you like to install it. (y/n): ",
@@ -253,6 +237,22 @@ function M.silicon(options)
 	else
 		vim.notify("[Snap] Failed to generate image.\n" .. result.stderr, 4)
 	end
+end
+
+---@param opts snap.opts?
+function M.setup(opts)
+	vim.api.nvim_create_user_command(build_command, function()
+		require("snap.build").build()
+	end, {})
+
+	vim.api.nvim_create_user_command("Snap", takeSnap, { nargs = "*" })
+
+	if vim.fn.executable("silicon") ~= 1 then
+		vim.notify("[Snap] silicon is not installed. Run " .. build_command .. " to install it.", 4)
+		return
+	end
+	M.themes = silicon.list_themes()
+	opts_configured = mergeOpts(opts)
 end
 
 return M
