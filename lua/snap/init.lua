@@ -214,12 +214,10 @@ function M.silicon(options)
 
 	local keys = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
 	vim.api.nvim_feedkeys(keys, "x", false)
-	local unsplit_opts = options.fargs
 
 	local opts = {}
-	for _, val in pairs(unsplit_opts) do
-		local split_table = helpers.splitStr(val, "=")
-		opts = vim.tbl_extend("keep", opts, { [split_table[1]] = split_table[2] })
+	for option, val in options.args:gmatch("([^= ]+)=([^= ]+)") do
+		opts = vim.tbl_extend("keep", opts, { [option] = val })
 	end
 
 	local highlightedText = table.concat(helpers.getHighlightedLines(), "\n")
