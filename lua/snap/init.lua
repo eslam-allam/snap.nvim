@@ -189,7 +189,6 @@ local function buildCommand(opts)
 end
 
 function M.silicon(options)
-	print(M.opts.theme)
 	if vim.fn.executable("silicon") ~= 1 then
 		local result = vim.fn.input({
 			prompt = "[Snap] silicon is not installed. Would you like to install it. (y/n): ",
@@ -250,7 +249,7 @@ function M.silicon(options)
 
 	local result = vim.system(command, { stdin = highlightedText }):wait()
 
-	if result.code == 0 then
+	if result.code == 0 and result.stderr == "" then -- Silicon doesn't always return a non-zero exit code on error
 		vim.notify("[Snap] Succesfully " .. action, 2)
 	else
 		vim.notify("[Snap] Failed to generate image.\n" .. result.stderr, 4)
