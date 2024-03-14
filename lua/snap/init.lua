@@ -38,6 +38,7 @@ end
 
 local M = {}
 
+---@type snap.opts
 M.opts = {
 	default_action = "clipboard",
 	hide_ln_numbers = false,
@@ -69,17 +70,39 @@ local silicon = require("snap.silicon")
 local build_command = "SnapBuild"
 local opts_configured = false
 
----@param opts snap.opts
-local function check_opts(opts)
-	return helpers.assert(opts.theme, function(x)
-		return helpers.contains(M.themes, x)
-	end, "[Snap] Invalid theme '" .. opts.theme .. "'. Must be one of " .. table.concat(M.themes, ", ")) and helpers.assert(
-		opts.default_path,
-		function(x)
-			return type(x) == "function" or type(x) == "string"
-		end,
-		"[Snap] Invalid default_path. Must be a function or string."
-	)
+local function mergeOpts(opts)
+	if opts == nil then
+		return true
+	end
+	local mergedOpts = vim.tbl_deep_extend("force", M.opts, opts)
+
+	if mergedOpts.theme:match("^tmTheme://") then
+		local themeFile = vim.fn.expand(mergedOpts.theme:sub(11))
+		if not themeFile:match("%.tmTheme$") then
+			vim.notify("[Snap] Invalid theme file: " .. themeFile .. ". Must be a .tmTheme file", 4)
+			return false
+		end
+		if vim.fn.filereadable(themeFile) ~= 1 then
+			vim.notify("[Snap] Could not find theme file: " .. themeFile, 4)
+			return false
+		end
+		mergedOpts.theme = themeFile
+	elseif not helpers.contains(M.themes, mergedOpts.theme) then
+		vim.notify(
+			"[Snap] Invalid theme: " .. mergedOpts.theme .. ". Must be one of:\n" .. table.concat(M.themes, ",\n"),
+			4,
+			{ timeout = 5000 }
+		)
+		return false
+	end
+
+	if not (type(mergedOpts.default_path) == "string" or type(mergedOpts.default_path) == "function") then
+		vim.notify("[Snap] Invalid default_path. Must be a function or string.", 4)
+		return false
+	end
+
+	M.opts = mergedOpts
+	return true
 end
 
 ---@param opts snap.opts?
@@ -95,13 +118,7 @@ function M.setup(opts)
 		return
 	end
 	M.themes = silicon.list_themes()
-	if opts ~= nil then
-		local merged_opts = vim.tbl_deep_extend("force", M.opts, opts)
-		if check_opts(opts) then
-			M.opts = merged_opts
-			opts_configured = true
-		end
-	end
+	opts_configured = mergeOpts(opts)
 end
 
 local function insert_all(list, ...)
@@ -172,9 +189,10 @@ local function buildCommand(opts)
 end
 
 function M.silicon(options)
+	print(M.opts.theme)
 	if vim.fn.executable("silicon") ~= 1 then
 		local result = vim.fn.input({
-			prompt = "[Silicon] silicon is not installed. Would you like to install it. (y/n): ",
+			prompt = "[Snap] silicon is not installed. Would you like to install it. (y/n): ",
 			cancel_return = "n",
 		})
 		if not helpers.contains({ "y", "n" }, result) then
@@ -187,11 +205,11 @@ function M.silicon(options)
 	end
 
 	if not opts_configured then
-		vim.notify("[Snap] Snap is not configured. Using default options.", vim.log.levels.WARN)
+		vim.notify_once("[Snap] Snap is not configured. Using default options.", vim.log.levels.WARN)
 	end
 
 	if not helpers.contains({ "v", "vs", "V", "Vs", "CTRL+V", "CTRL+Vs" }, vim.fn.mode()) then
-		vim.notify("[Silicon] not in visual mode!", 4)
+		vim.notify("[Snap] not in visual mode!", 4)
 		return
 	end
 
@@ -233,9 +251,9 @@ function M.silicon(options)
 	vim.fn.system("echo " .. vim.fn.shellescape(highlightedText) .. " | " .. command)
 
 	if vim.v.shell_error == 0 then
-		vim.notify("[Silicon] Succesfully " .. action, 2)
+		vim.notify("[Snap] Succesfully " .. action, 2)
 	else
-		vim.notify("[Silicon] Failed to generate image.", 4)
+		vim.notify("[Snap] Failed to generate image.", 4)
 	end
 end
 

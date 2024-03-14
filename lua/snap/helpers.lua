@@ -97,7 +97,7 @@ end
 
 function M.silicon(options)
   if not M.contains({ "v", "vs", "V", "Vs", "CTRL+V", "CTRL+Vs" }, vim.fn.mode()) then
-    vim.notify("[Silicon] not in visual mode!", 4)
+    vim.notify("[Snap] not in visual mode!", 4)
     return
   end
 
@@ -145,9 +145,9 @@ function M.silicon(options)
   vim.fn.system("echo " .. vim.fn.shellescape(highlightedText) .. " | " .. command)
 
   if vim.v.shell_error == 0 then
-    vim.notify("[Silicon] Succesfully " .. action, 2)
+    vim.notify("[Snap] Succesfully " .. action, 2)
   else
-    vim.notify("[Silicon] Failed to generate image.", 4)
+    vim.notify("[Snap] Failed to generate image.", 4)
   end
 end
 
