@@ -39,7 +39,10 @@ function M.cwd()
   return vim.fn.expand("%:p:h")
 end
 
-function M.getHighlightedLines()
+function M.getHighlightedLines(range, line1, line2)
+  if range ~= 0 then
+    return vim.fn.getline(line1, line2)
+  end
   local vstart = vim.fn.getpos("'<")
 
   local vend = vim.fn.getpos("'>")

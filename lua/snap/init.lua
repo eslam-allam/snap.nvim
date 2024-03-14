@@ -191,7 +191,7 @@ local function takeSnap(options)
 		vim.notify_once("[Snap] Snap is not configured. Using default options.", vim.log.levels.WARN)
 	end
 
-	if not helpers.contains({ "v", "vs", "V", "Vs", "CTRL+V", "CTRL+Vs" }, vim.fn.mode()) then
+	if options.range == 0 and not helpers.contains({ "v", "vs", "V", "Vs", "CTRL+V", "CTRL+Vs" }, vim.fn.mode()) then
 		vim.notify("[Snap] not in visual mode!", 4)
 		return
 	end
@@ -204,7 +204,7 @@ local function takeSnap(options)
 		opts = vim.tbl_extend("keep", opts, { [option] = val })
 	end
 
-	local highlightedText = table.concat(helpers.getHighlightedLines(), "\n")
+	local highlightedText = table.concat(helpers.getHighlightedLines(options.range, options.line1, options.line2), "\n")
 	local default_path = ""
 
 	if type(M.opts.default_path) == "function" then
@@ -245,7 +245,7 @@ function M.setup(opts)
 		require("snap.build").build()
 	end, {})
 
-	vim.api.nvim_create_user_command("Snap", takeSnap, { nargs = "*" })
+	vim.api.nvim_create_user_command("Snap", takeSnap, { nargs = "*", range = true })
 
 	if vim.fn.executable("silicon") ~= 1 then
 		vim.notify("[Snap] silicon is not installed. Run " .. build_command .. " to install it.", 4)
