@@ -349,7 +349,7 @@ local function buildCommand(opts)
 end
 
 local function pointSizeToRes(point_size)
-	return tostring(point_size * 12) .. "x" .. tostring(point_size * 7)
+	return tostring(point_size * 12) .. "x" .. tostring(point_size * 4)
 end
 
 local function tiledWaterMark()
@@ -391,9 +391,9 @@ local function standardWaterMark()
 		"-fill",
 		M.opts.watermark.font_color,
 		"-gravity",
-		"South",
+		"Center",
 		"-draw",
-		"text 5,15 '" .. M.opts.watermark.text .. "'",
+		"text 0,0 '" .. M.opts.watermark.text .. "'",
 		"miff:-",
 	}):wait()
 end
