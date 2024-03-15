@@ -5,7 +5,7 @@ local M = {}
 
 function M.getHighlightedLines(range, line1, line2)
 	if range ~= 0 then
-		return vim.fn.getline(line1, line2)
+		return vim.fn.getline(line1, line2), line1, line2
 	end
 	local vstart = vim.fn.getpos("'<")
 
@@ -15,7 +15,7 @@ function M.getHighlightedLines(range, line1, line2)
 	local line_end = vend[2]
 
 	-- or use api.nvim_buf_get_lines
-	return vim.fn.getline(line_start, line_end)
+	return vim.fn.getline(line_start, line_end), line_start, line_end
 end
 
 function M.absolutePath(fname)

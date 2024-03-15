@@ -14,7 +14,7 @@
 ---@field hide_window_title boolean
 ---@field background_colour string
 ---@field background_image string?
----@field line_offset number
+---@field line_offset boolean
 ---@field line_pad number
 ---@field pad_h number
 ---@field pad_v number
@@ -31,6 +31,7 @@
 ---@class snap.do.opts
 ---@field type "clipboard" | "file"
 ---@field file_path string
+---@field line_offset number
 
 local function uuid()
 	math.randomseed(tonumber(tostring(os.time()):reverse():sub(1, 9)))
@@ -56,7 +57,7 @@ M.opts = {
 	hide_window_title = false,
 	background_colour = "#aaaaff",
 	background_image = nil,
-	line_offset = 1,
+  line_offset = false,
 	line_pad = 2,
 	pad_h = 80,
 	pad_v = 100,
@@ -165,7 +166,7 @@ local function mergeOpts(opts)
 	end
 
 	-- line_offset
-	if not assert(mergedOpts.line_offset >= 0, "line_offset must be a non-negative number") then
+	if not assert(type(mergedOpts.line_offset) == "boolean", "line_offset must be a boolean") then
 		return false
 	end
 
@@ -280,7 +281,7 @@ end
 ---@return table
 ---@return string
 ---@return string?
-local function buildCommand(opts)
+local function buildCommand(opts, linestart)
 	local command = { "silicon" }
 
 	local action = ""
@@ -322,7 +323,7 @@ local function buildCommand(opts)
 	end
 
 	insert_all(command, "--theme", M.opts.theme)
-	insert_all(command, "--line-offset", M.opts.line_offset)
+	insert_all(command, "--line-offset", M.opts.line_offset and linestart or 1)
 	insert_all(command, "--line-pad", M.opts.line_pad)
 	insert_all(command, "--pad-horiz", M.opts.pad_h)
 	insert_all(command, "--pad-vert", M.opts.pad_v)
@@ -477,8 +478,9 @@ local function takeSnap(options)
 	for option, val in options.args:gmatch("([^= ]+)=([^= ]+)") do
 		opts = vim.tbl_extend("keep", opts, { [option] = val })
 	end
-
-	local highlightedText = table.concat(helpers.getHighlightedLines(options.range, options.line1, options.line2), "\n")
+  
+  local lines, linestart, _ = helpers.getHighlightedLines(options.range, options.line1, options.line2)
+	local highlightedText = table.concat(lines, "\n")
 	local default_path = ""
 
 	if type(M.opts.default_path) == "function" then
@@ -506,7 +508,7 @@ local function takeSnap(options)
 	opts.file_path = helpers.absolutePath(opts.file_path)
 	vim.fn.mkdir(opts.file_path:gsub("[^/\\]+$", ""), "p")
 
-	local command, action, tmpfile = buildCommand(opts)
+	local command, action, tmpfile = buildCommand(opts, linestart)
 
 	local result = vim.system(command, { stdin = highlightedText }):wait()
 
