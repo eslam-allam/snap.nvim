@@ -240,7 +240,7 @@ local function buildCommand(opts)
 		insert_all(command, "--background-image", M.opts.background_image)
 	end
 	if M.opts.watermark ~= nil then
-		local tmpfile = vim.fn.tempname() .. ".png"
+		local tmpfile = vim.fn.tempname() .. opts.file_path:match("%.[a-zA-Z]+$")
 		insert_all(command, "-o", tmpfile)
 		return command, action, tmpfile
 	end
@@ -395,6 +395,10 @@ local function takeSnap(options)
 
 	if opts == nil then
 		opts = {}
+	end
+
+	if opts.file_path ~= nil then
+		opts.file_path = vim.fn.expand(opts.file_path)
 	end
 
 	opts = vim.tbl_deep_extend("keep", opts, defaults)
