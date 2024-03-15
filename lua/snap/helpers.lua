@@ -61,12 +61,12 @@ function M.ReadFile(file)
 	return content
 end
 
----@param value any
----@param condition fun(value:any):boolean
+---@param condition boolean
 ---@param message string
-function M.assert(value, condition, message)
-	if not condition(value) then
-		vim.notify(message, 4)
+---@param opts table?
+function M.assert(condition, message, opts)
+	if not condition then
+		vim.notify(message, 4, opts)
 		return false
 	end
 	return true

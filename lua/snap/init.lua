@@ -4,6 +4,7 @@
 ---@field font_color string
 ---@field font_size number
 ---@field position "North" | "South" | "East" | "West" | "NorthEast" | "NorthWest" | "SouthEast" | "SouthWest"
+---@field opacity number
 
 ---@class snap.opts
 ---@field default_action "clipboard" | "file"
@@ -73,11 +74,55 @@ M.opts = {
 }
 
 M.themes = {}
+M.watermark_positions = { "North", "South", "East", "West", "NorthEast", "NorthWest", "SouthEast", "SouthWest" }
 
 local helpers = require("snap.helpers")
 local silicon = require("snap.silicon")
+local assert = function(condition, message, opts)
+	return helpers.assert(condition, "[Snap] " .. message, opts)
+end
 local build_command = "SnapBuild"
 local opts_configured = false
+
+local function verifyWaterMarkOpts(watermark)
+	if watermark == nil then
+		return true
+	end
+	if not assert(watermark.text, "watermark text cannot be empty.") then
+		return false
+	end
+	if not assert(watermark.font, "watermark font cannot be empty.") then
+		return false
+	end
+	if not assert(watermark.font_color, "watermark font_color cannot be empty.") then
+		return false
+	end
+	if
+		not assert(
+			watermark.font_size ~= nil and watermark.font_size > 0,
+			"watermark font_size must be a non negative number."
+		)
+	then
+		return false
+	end
+	if
+		not assert(
+			watermark.position and helpers.contains(M.watermark_positions, watermark.position),
+			"invalid watermark position. Must be one of:\n" .. table.concat(M.watermark_positions, ",\n")
+		)
+	then
+		return false
+	end
+	if
+		not assert(
+			watermark.opacity ~= nil and watermark.opacity >= 0 and watermark.opacity <= 1,
+			"watermark opacity must be a number between 0 and 1."
+		)
+	then
+		return false
+	end
+	return true
+end
 
 local function mergeOpts(opts)
 	if opts == nil then
@@ -87,26 +132,38 @@ local function mergeOpts(opts)
 
 	if mergedOpts.theme:match("^tmTheme://") then
 		local themeFile = vim.fn.expand(mergedOpts.theme:sub(11))
-		if not themeFile:match("%.tmTheme$") then
-			vim.notify("[Snap] Invalid theme file: " .. themeFile .. ". Must be a .tmTheme file", 4)
+		if
+			not assert(
+				themeFile:match("%.tmTheme$"),
+				"Invalid theme file: " .. themeFile .. ". Must be a .tmTheme file"
+			)
+		then
 			return false
 		end
-		if vim.fn.filereadable(themeFile) ~= 1 then
-			vim.notify("[Snap] Could not find theme file: " .. themeFile, 4)
+		if not assert(vim.fn.filereadable(themeFile) == 1, "Could not find theme file: " .. themeFile) then
 			return false
 		end
 		mergedOpts.theme = themeFile
-	elseif not helpers.contains(M.themes, mergedOpts.theme) then
-		vim.notify(
-			"[Snap] Invalid theme: " .. mergedOpts.theme .. ". Must be one of:\n" .. table.concat(M.themes, ",\n"),
-			4,
+	elseif
+		not assert(
+			helpers.contains(M.themes, mergedOpts.theme),
+			"Invalid theme: " .. mergedOpts.theme .. ". Must be one of:\n" .. table.concat(M.themes, ",\n"),
 			{ timeout = 5000 }
 		)
+	then
 		return false
 	end
 
-	if not (type(mergedOpts.default_path) == "string" or type(mergedOpts.default_path) == "function") then
-		vim.notify("[Snap] Invalid default_path. Must be a function or string.", 4)
+	if
+		not assert(
+			(type(mergedOpts.default_path) == "string" or type(mergedOpts.default_path) == "function"),
+			"Invalid default_path. Must be a function or string."
+		)
+	then
+		return false
+	end
+
+	if not verifyWaterMarkOpts(mergedOpts.watermark) then
 		return false
 	end
 
@@ -196,7 +253,12 @@ local function pointSizeToRes(point_size)
 end
 
 local function applyWaterMark(opts, tmpfile)
+	if not vim.fn.executable("magick") == 1 then
+		vim.notify("[Snap] magick is not installed. Please install it to use watermarks.", 4)
+		return false
+	end
 	local watermarkResult = vim.system({
+		"magick",
 		"convert",
 		"-size",
 		pointSizeToRes(M.opts.watermark.font_size),
@@ -218,10 +280,17 @@ local function applyWaterMark(opts, tmpfile)
 		vim.fn.delete(tmpfile)
 		return false
 	end
-	local addWatermark = vim.system(
-		{ "composite", "-gravity", M.opts.watermark.position, "-", tmpfile, tmpfile },
-		{ stdin = watermarkResult.stdout }
-	):wait()
+	local addWatermark = vim.system({
+		"magick",
+		"composite",
+		"-gravity",
+		M.opts.watermark.position,
+		"-dissolve",
+		tostring(M.opts.watermark.opacity * 100) .. "%",
+		"-",
+		tmpfile,
+		tmpfile,
+	}, { stdin = watermarkResult.stdout }):wait()
 	if addWatermark.code ~= 0 then
 		vim.notify("[Snap] Failed to composite watermark.", 4)
 		vim.fn.delete(tmpfile)
