@@ -124,12 +124,107 @@ local function verifyWaterMarkOpts(watermark)
 	return true
 end
 
+---@param opts snap.opts
 local function mergeOpts(opts)
 	if opts == nil then
 		return true
 	end
 	local mergedOpts = vim.tbl_deep_extend("force", M.opts, opts)
 
+	-- default_action
+	if not assert(helpers.contains({ "clipboard", "file" }, mergedOpts.default_action), "Invalid default_action") then
+		return false
+	end
+
+	-- background_colour
+	if not assert(mergedOpts.background_colour:match("^#%x%x%x%x%x%x$"), "Invalid background_colour") then
+		return false
+	end
+
+	-- background_image
+	if
+		mergedOpts.background_image ~= nil
+		and not assert(vim.fn.filereadable(mergedOpts.background_image), "Background image does not exist")
+	then
+		return false
+	end
+
+	-- hide_controls
+	if not assert(type(mergedOpts.hide_controls) == "boolean", "hide_controls must be a boolean") then
+		return false
+	end
+
+	-- hide_ln_numbers
+	if not assert(type(mergedOpts.hide_ln_numbers) == "boolean", "hide_ln_numbers must be a boolean") then
+		return false
+	end
+
+	-- hide_window_title
+	if not assert(type(mergedOpts.hide_window_title) == "boolean", "hide_window_title must be a boolean") then
+		return false
+	end
+
+	-- line_offset
+	if not assert(mergedOpts.line_offset >= 0, "line_offset must be a non-negative number") then
+		return false
+	end
+
+	-- line_pad
+	if not assert(mergedOpts.line_pad >= 0, "line_pad must be a non-negative number") then
+		return false
+	end
+
+	-- no_rounded_corners
+	if not assert(type(mergedOpts.no_rounded_corners) == "boolean", "no_rounded_corners must be a boolean") then
+		return false
+	end
+
+	-- pad_h
+	if not assert(mergedOpts.pad_h >= 0, "pad_h must be a non-negative number") then
+		return false
+	end
+
+	-- pad_v
+	if not assert(mergedOpts.pad_v >= 0, "pad_v must be a non-negative number") then
+		return false
+	end
+
+	-- shadow_blur_radius
+	if not assert(mergedOpts.shadow_blur_radius >= 0, "shadow_blur_radius must be a non-negative number") then
+		return false
+	end
+
+	-- shadow_color
+	if not assert(mergedOpts.shadow_color:match("^#%x%x%x%x%x%x$"), "Invalid shadow_color") then
+		return false
+	end
+
+	-- shadow_offset_x
+	if not assert(mergedOpts.shadow_offset_x >= 0, "shadow_offset_x must be a non-negative number") then
+		return false
+	end
+
+	-- shadow_offset_y
+	if not assert(mergedOpts.shadow_offset_y >= 0, "shadow_offset_y must be a non-negative number") then
+		return false
+	end
+
+	-- tab_width
+	if not assert(mergedOpts.tab_width >= 0, "tab_width must be a non-negative number") then
+		return false
+	end
+
+	-- window_title
+	if
+		not assert(
+			type(mergedOpts.window_title) == "string" or type(mergedOpts.window_title) == "function",
+			"Invalid window_title. Must be a string or function."
+		)
+	then
+		return false
+	end
+  
+	-- Theme
 	if mergedOpts.theme:match("^tmTheme://") then
 		local themeFile = vim.fn.expand(mergedOpts.theme:sub(11))
 		if
@@ -154,6 +249,7 @@ local function mergeOpts(opts)
 		return false
 	end
 
+	-- default_path
 	if
 		not assert(
 			(type(mergedOpts.default_path) == "string" or type(mergedOpts.default_path) == "function"),
@@ -163,6 +259,7 @@ local function mergeOpts(opts)
 		return false
 	end
 
+	-- watermark
 	if not verifyWaterMarkOpts(mergedOpts.watermark) then
 		return false
 	end
@@ -234,10 +331,13 @@ local function buildCommand(opts)
 	insert_all(command, "--shadow-offset-x", M.opts.shadow_offset_x)
 	insert_all(command, "--shadow-offset-y", M.opts.shadow_offset_y)
 	insert_all(command, "--tab-width", M.opts.tab_width)
-	insert_all(command, "--background", M.opts.background_colour)
+
+	if M.opts.background_image == nil then
+		insert_all(command, "--background", M.opts.background_colour)
+	end
 
 	if M.opts.background_image ~= nil then
-		insert_all(command, "--background-image", M.opts.background_image)
+		insert_all(command, "--background-image", vim.fn.expand(M.opts.background_image))
 	end
 	if M.opts.watermark ~= nil then
 		local tmpfile = vim.fn.tempname() .. opts.file_path:match("%.[a-zA-Z]+$")
