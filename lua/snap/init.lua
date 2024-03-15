@@ -3,7 +3,7 @@
 ---@field font string
 ---@field font_color string
 ---@field font_size number
----@field position "North" | "South" | "East" | "West" | "NorthEast" | "NorthWest" | "SouthEast" | "SouthWest"
+---@field position "North" | "South" | "East" | "West" | "NorthEast" | "NorthWest" | "SouthEast" | "SouthWest" | "Tile"
 ---@field opacity number
 
 ---@class snap.opts
@@ -74,7 +74,7 @@ M.opts = {
 }
 
 M.themes = {}
-M.watermark_positions = { "North", "South", "East", "West", "NorthEast", "NorthWest", "SouthEast", "SouthWest" }
+M.watermark_positions = { "North", "South", "East", "West", "NorthEast", "NorthWest", "SouthEast", "SouthWest", "Tile" }
 
 local helpers = require("snap.helpers")
 local silicon = require("snap.silicon")
@@ -252,12 +252,33 @@ local function pointSizeToRes(point_size)
 	return tostring(point_size * 12) .. "x" .. tostring(point_size * 7)
 end
 
-local function applyWaterMark(opts, tmpfile)
-	if not vim.fn.executable("magick") == 1 then
-		vim.notify("[Snap] magick is not installed. Please install it to use watermarks.", 4)
-		return false
-	end
-	local watermarkResult = vim.system({
+local function tiledWaterMark()
+	return vim.system({
+		"magick",
+		"convert",
+		"-size",
+		pointSizeToRes(M.opts.watermark.font_size),
+		"xc:none",
+		"-font",
+		M.opts.watermark.font,
+		"-pointsize",
+		tostring(M.opts.watermark.font_size),
+		"-fill",
+		M.opts.watermark.font_color,
+		"-gravity",
+		"NorthWest",
+		"-draw",
+		"text 10,10 '" .. M.opts.watermark.text .. "'",
+		"-gravity",
+		"SouthEast",
+		"-draw",
+		"text 5,15 '" .. M.opts.watermark.text .. "'",
+		"miff:-",
+	}):wait()
+end
+
+local function standardWaterMark()
+	return vim.system({
 		"magick",
 		"convert",
 		"-size",
@@ -275,37 +296,48 @@ local function applyWaterMark(opts, tmpfile)
 		"text 5,15 '" .. M.opts.watermark.text .. "'",
 		"miff:-",
 	}):wait()
-	if watermarkResult.code ~= 0 then
-		vim.notify("[Snap] Failed to generate watermark image", 4)
+end
+
+local function applyWaterMark(opts, tmpfile)
+	if not vim.fn.executable("magick") == 1 then
+		vim.notify("[Snap] magick is not installed. Please install it to use watermarks.", 4)
+		return false
+	end
+	local watermarkStampResult = M.opts.watermark.position == "Tile" and tiledWaterMark() or standardWaterMark()
+	if not assert(watermarkStampResult.code == 0, "Failed to generate watermark image") then
 		vim.fn.delete(tmpfile)
 		return false
 	end
-	local addWatermark = vim.system({
+	local waterMarkCompositeOpts = {
 		"magick",
 		"composite",
-		"-gravity",
-		M.opts.watermark.position,
 		"-dissolve",
 		tostring(M.opts.watermark.opacity * 100) .. "%",
 		"-",
 		tmpfile,
 		tmpfile,
-	}, { stdin = watermarkResult.stdout }):wait()
-	if addWatermark.code ~= 0 then
-		vim.notify("[Snap] Failed to composite watermark.", 4)
+	}
+
+	if M.opts.watermark.position == "Tile" then
+		table.insert(waterMarkCompositeOpts, 3, "-tile")
+	else
+		table.insert(waterMarkCompositeOpts, 3, "-gravity")
+		table.insert(waterMarkCompositeOpts, 4, M.opts.watermark.position)
+	end
+
+	local addWatermark = vim.system(waterMarkCompositeOpts, { stdin = watermarkStampResult.stdout }):wait()
+	if not assert(addWatermark.code == 0, "Failed to composite watermark") then
 		vim.fn.delete(tmpfile)
 		return false
 	end
 	if opts.type == "clipboard" then
-		if not helpers.copyFileToClipboard(tmpfile) then
-			vim.notify("[Snap] Failed to copy image to clipboard", 4)
+		if not assert(helpers.copyFileToClipboard(tmpfile), "Failed to copy image to clipboard") then
 			vim.fn.delete(tmpfile)
 			return false
 		end
 	end
 	if opts.type == "file" then
-		if not helpers.copyFile(tmpfile, opts.file_path) then
-			vim.notify("[Snap] Failed to generate image.", 4)
+		if not assert(helpers.copyFile(tmpfile, opts.file_path), "Failed to generate image") then
 			vim.fn.delete(tmpfile)
 			return false
 		end
