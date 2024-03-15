@@ -3,7 +3,7 @@
 ---@field font string
 ---@field font_color string
 ---@field font_size number
----@field position "North" | "South" | "East" | "West" | "NorthEast" | "NorthWest" | "SouthEast" | "SouthWest" | "Tile"
+---@field position "North" | "South" | "East" | "West" | "NorthEast" | "NorthWest" | "SouthEast" | "SouthWest" | "Center" | "Tile"
 ---@field opacity number
 
 ---@class snap.opts
@@ -75,7 +75,7 @@ M.opts = {
 }
 
 M.themes = {}
-M.watermark_positions = { "North", "South", "East", "West", "NorthEast", "NorthWest", "SouthEast", "SouthWest", "Tile" }
+M.watermark_positions = { "North", "South", "East", "West", "NorthEast", "NorthWest", "SouthEast", "SouthWest", "Center", "Tile" }
 
 local helpers = require("snap.helpers")
 local silicon = require("snap.silicon")
