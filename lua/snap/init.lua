@@ -1,3 +1,10 @@
+---@class snap.watermark
+---@field text string
+---@field font string
+---@field font_color string
+---@field font_size number
+---@field position "North" | "South" | "East" | "West" | "NorthEast" | "NorthWest" | "SouthEast" | "SouthWest"
+
 ---@class snap.opts
 ---@field default_action "clipboard" | "file"
 ---@field hide_ln_numbers boolean
@@ -18,6 +25,7 @@
 ---@field theme string
 ---@field default_path string | fun(buffer: number):string If string then it is path to a directory. If function then it must return the path including the file name. Both paths may be relative and may use modifiers to be expanded by |expand()|.
 ---@field window_title string | fun(buffer: number):string
+---@field watermark snap.watermark?
 
 ---@class snap.do.opts
 ---@field type "clipboard" | "file"
@@ -61,6 +69,7 @@ M.opts = {
 		return vim.fn.getcwd() .. "/" .. uuid() .. ".png"
 	end,
 	window_title = "%:t",
+	watermark = nil,
 }
 
 M.themes = {}
@@ -116,6 +125,7 @@ end
 ---@param opts snap.do.opts
 ---@return table
 ---@return string
+---@return string?
 local function buildCommand(opts)
 	local command = { "silicon" }
 
@@ -123,12 +133,16 @@ local function buildCommand(opts)
 
 	if opts.type == "clipboard" then
 		action = "copied image to clipboard"
-		table.insert(command, "--to-clipboard")
+		if M.opts.watermark == nil then
+			table.insert(command, "--to-clipboard")
+		end
 	end
 
 	if opts.type == "file" then
 		action = "saved image to " .. opts.file_path
-		insert_all(command, "-o", opts.file_path)
+		if M.opts.watermark == nil then
+			insert_all(command, "-o", opts.file_path)
+		end
 	end
 	insert_all(command, "--language", tostring(vim.bo.filetype))
 	if M.opts.hide_ln_numbers then
@@ -168,8 +182,67 @@ local function buildCommand(opts)
 	if M.opts.background_image ~= nil then
 		insert_all(command, "--background-image", M.opts.background_image)
 	end
+	if M.opts.watermark ~= nil then
+		local tmpfile = vim.fn.tempname() .. ".png"
+		insert_all(command, "-o", tmpfile)
+		return command, action, tmpfile
+	end
 
 	return command, action
+end
+
+local function pointSizeToRes(point_size)
+	return tostring(point_size * 12) .. "x" .. tostring(point_size * 7)
+end
+
+local function applyWaterMark(opts, tmpfile)
+	local watermarkResult = vim.system({
+		"convert",
+		"-size",
+		pointSizeToRes(M.opts.watermark.font_size),
+		"xc:none",
+		"-font",
+		M.opts.watermark.font,
+		"-pointsize",
+		tostring(M.opts.watermark.font_size),
+		"-fill",
+		M.opts.watermark.font_color,
+		"-gravity",
+		"South",
+		"-draw",
+		"text 5,15 '" .. M.opts.watermark.text .. "'",
+		"miff:-",
+	}):wait()
+	if watermarkResult.code ~= 0 then
+		vim.notify("[Snap] Failed to generate watermark image", 4)
+		vim.fn.delete(tmpfile)
+		return false
+	end
+	local addWatermark = vim.system(
+		{ "composite", "-gravity", M.opts.watermark.position, "-", tmpfile, tmpfile },
+		{ stdin = watermarkResult.stdout }
+	):wait()
+	if addWatermark.code ~= 0 then
+		vim.notify("[Snap] Failed to composite watermark.", 4)
+		vim.fn.delete(tmpfile)
+		return false
+	end
+	if opts.type == "clipboard" then
+		if not helpers.copyFileToClipboard(tmpfile) then
+			vim.notify("[Snap] Failed to copy image to clipboard", 4)
+			vim.fn.delete(tmpfile)
+			return false
+		end
+	end
+	if opts.type == "file" then
+		if not helpers.copyFile(tmpfile, opts.file_path) then
+			vim.notify("[Snap] Failed to generate image.", 4)
+			vim.fn.delete(tmpfile)
+			return false
+		end
+	end
+	vim.fn.delete(tmpfile)
+	return true
 end
 
 local function takeSnap(options)
@@ -228,11 +301,16 @@ local function takeSnap(options)
 	opts.file_path = helpers.absolutePath(opts.file_path)
 	vim.fn.mkdir(opts.file_path:gsub("[^/\\]+$", ""), "p")
 
-	local command, action = buildCommand(opts)
+	local command, action, tmpfile = buildCommand(opts)
 
 	local result = vim.system(command, { stdin = highlightedText }):wait()
 
 	if result.code == 0 and result.stderr == "" then -- Silicon doesn't always return a non-zero exit code on error
+		if tmpfile ~= nil then
+			if not applyWaterMark(opts, tmpfile) then
+				return
+			end
+		end
 		vim.notify("[Snap] Succesfully " .. action, 2)
 	else
 		vim.notify("[Snap] Failed to generate image.\n" .. result.stderr, 4)
