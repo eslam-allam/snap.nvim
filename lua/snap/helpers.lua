@@ -1,4 +1,4 @@
-local PlenaryPath = require("plenary.path")
+local PlenaryPath = require("snap.path")
 local random = math.random
 
 local M = {}
