@@ -18,19 +18,22 @@ Create beautiful code screenshots using [Silicon](https://github.com/Aloxaf/sili
 
 ### Lazy
 
+All these values are defaults and can be overridden in your config. Although
+the setup function must be called with or without opts.
+
 ```lua
 return {
   "eslam-allam/snap.nvim",
   -- Installs silicon using cargo. Remove if you wish to manually install silicon.
   build = ":SnapBuild",
   opts = {
-    -- Action done when no action is specified. can be "clipboard" or "file".
+    -- Action done when no action is specified. Can be "clipboard" or "file".
     default_action = "clipboard",
     -- Don't show line numbers in screenshot.
     hide_ln_numbers = false,
     -- Use sharp edges for code frame.
     no_rounded_corners = false,
-    -- Don't show close, fullscreen, and minimize buttons.
+    -- Don't show close, full screen, and minimize buttons.
     hide_controls = false,
     -- Don't add window title (See 'window_title' below).
     hide_window_title = false,
@@ -74,8 +77,8 @@ return {
     -- [Highly Experimental] Water-mark options. Can be nil or a table.
     -- If nil then watermark is disabled.
     -- If it's a table then all fields are required. Default is nil.
-    -- Water mark was tested on linux X11.
-    -- Clipboard with watermark functionality may be broken on wayland
+    -- Water mark was tested on Linux X11.
+    -- Clipboard with watermark functionality may be broken on Wayland
     -- or other operating systems.
     watermark = {
       -- Font used in watermark.
@@ -130,28 +133,32 @@ Example Usage:
 - **Default action:**
 
 ```vim
-Snap
+:Snap
 ```
 
 - **To Clipboard:**
 
 ```vim
-Snap type=clipboard
+:Snap type=clipboard
 ```
 
 - **To file:**
 
 ```vim
-Snap type=file file_path=~/Downloads/test.png
+:Snap type=file file_path=~/Downloads/test.png
 ```
 
 - **To file with range:**
 
 ```vim
-'<,'>Snap type=file file_path=./codeSnaps/tile.png
+:'<,'>Snap type=file file_path=./codeSnaps/tile.png
 ```
 
 ### SnapBuild
 
 - Installs Silicon using Cargo.
 - Accepts no arguments.
+
+```vim
+:SnapBuild
+```
