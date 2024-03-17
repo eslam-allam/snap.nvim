@@ -43,7 +43,7 @@ return {
     background_image = nil,
     -- If true then line numbers will be the same as the lines in your code.
     -- If false then line numbers will start at 1.
-    line_offset = 1,
+    line_offset = false,
     -- Space between lines.
     line_pad = 2,
     -- Horizontal padding between code and edge of screen.
