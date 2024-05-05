@@ -12,7 +12,7 @@ Create beautiful code screenshots using [Silicon](https://github.com/Aloxaf/sili
   tested them yet)
 - Cargo for the auto installation (or install
   [Silicon](https://github.com/Aloxaf/silicon) yourself first)
-- [**Optional**] ImageMagick (For applying the watermark)
+- [**Optional**] ImageMagick 7 (For applying the watermark)
 
 ## Setup
 
