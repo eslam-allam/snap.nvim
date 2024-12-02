@@ -13,6 +13,7 @@ Create beautiful code screenshots using [Silicon](https://github.com/Aloxaf/sili
 - Cargo for the auto installation (or install
   [Silicon](https://github.com/Aloxaf/silicon) yourself first)
 - [**Optional**] ImageMagick 7 (For applying the watermark)
+- [**Optional**] Windows only: [file2clip](https://github.com/rostok/file2clip) (For copying the image to the clipboard)
 
 ## Setup
 

@@ -73,9 +73,9 @@ function M.assert(condition, message, opts)
 end
 
 function M.copyFileToClipboard(file_path)
-	local os_name = vim.fn.has("Linux") and "Linux"
-		or vim.fn.has("macunix") and "Darwin"
-		or vim.fn.has("win32") and "Windows"
+	local os_name = vim.fn.has("linux") == 1 and "Linux"
+		or vim.fn.has("macunix") == 1 and "Darwin"
+		or vim.fn.has("windows") == 1 and "Windows"
 		or "unknown"
 
 	if os_name == "Linux" or os_name == "Darwin" then
@@ -95,8 +95,8 @@ function M.copyFileToClipboard(file_path)
 			return false
 		end
 	elseif os_name == "Windows" then
-		local clipboard_tool = "clip.exe"
-		local result = vim.system({ clipboard_tool }, { stdin = M.ReadFile(file_path) }):wait()
+		local cmd = { "file2clip", file_path }
+		local result = vim.system(cmd):wait()
 		if result.code ~= 0 then
 			return false
 		end
