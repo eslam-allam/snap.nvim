@@ -75,7 +75,7 @@ end
 function M.copyFileToClipboard(file_path)
 	local os_name = vim.fn.has("linux") == 1 and "Linux"
 		or vim.fn.has("macunix") == 1 and "Darwin"
-		or vim.fn.has("windows") == 1 and "Windows"
+		or vim.fn.has("win32") == 1 and "Windows"
 		or "unknown"
 
 	if os_name == "Linux" or os_name == "Darwin" then

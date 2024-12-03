@@ -443,7 +443,7 @@ local function applyWaterMark(opts, tmpfile)
 			return false
 		end
 	end
-  if vim.fn.has('windows') == 1 and opts.type == "clipboard" then
+  if vim.fn.has('win32') == 1 and opts.type == "clipboard" then
     return true
   end
 	vim.fn.delete(tmpfile)
@@ -540,7 +540,7 @@ function M.setup(opts)
 		return
 	end
 
-	if vim.fn.has('windows') == 1 and vim.fn.executable("file2clip.exe") ~= 1 then
+	if vim.fn.has('win32') == 1 and vim.fn.executable("file2clip.exe") ~= 1 then
 		vim.notify('[Snap] file2clip is not installed. Copying image to clipboard will fail. Please install it to use use that functionality.', vim.log.levels.WARN)
 	end
 
