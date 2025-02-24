@@ -89,10 +89,21 @@ function M.copyFileToClipboard(file_path)
 			end
 		else
 			cmd = { "pbcopy" }
-		end
-		local result = vim.system(cmd, { stdin = M.ReadFile(file_path) }):wait()
-		if result.code ~= 0 then
-			return false
+    end
+    local code;
+    require("plenary.job"):new(
+    ---@diagnostic disable-next-line: missing-fields
+      {
+        command = cmd[1],
+        args = vim.list_slice(cmd, 2, #cmd),
+        writer = M.ReadFile(file_path),
+        on_exit = function(_, c, _)
+          code = c;
+        end
+      }
+    ):sync()
+    if code == nil or code ~= 0 then
+      return false
 		end
 	elseif os_name == "Windows" then
 		local cmd = { "file2clip", file_path }
