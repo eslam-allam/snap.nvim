@@ -1,32 +1,50 @@
 local M = {}
 
 local spinner_frames = { "⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷" } -- spinners
-local hasNvimNotify, _ = pcall(require, "notify")
+local hasNvimNotify, notify = pcall(require, "notify")
 local title = hasNvimNotify and "[Snap] Installing silicon using cargo..." or "[Snap]"
 local notif_data = { spinner = 1, done = false, title = title }
-local notify_opts = {}
 
-local function update_spinner(notif_data) -- update spinner helper function to defer
+local function notify_output(data, level, opts)
+	if not hasNvimNotify then
+		vim.notify(data, level, opts)
+		return
+	end
+	vim.schedule_wrap(function()
+		if not notif_data.notification then
+			notif_data.notification = notify(
+				data,
+				level,
+				vim.tbl_extend("keep", opts or {}, {
+					title = title,
+					timeout = false,
+				})
+			)
+			return
+		end
+		notif_data.notification = notify.notify(
+			data,
+			level,
+			vim.tbl_extend("keep", opts or {}, {
+				hide_from_history = true,
+				replace = notif_data.notification,
+			})
+		)
+	end)()
+end
+
+local function update_spinner() -- update spinner helper function to defer
 	if hasNvimNotify and not notif_data.done and notif_data.spinner ~= nil then
 		if notif_data.notification ~= nil then
 			local new_spinner = (notif_data.spinner + 1) % #spinner_frames
-			local ok, notification = pcall(function()
-				return vim.notify(nil, nil, {
-					hide_from_history = true,
-					icon = spinner_frames[new_spinner],
-					replace = notif_data.notification,
-					title = notif_data.title,
-				})
-			end)
-
-			if ok then
-				notif_data.notification = notification
-				notif_data.spinner = new_spinner
-			end
+			notify_output(nil, nil, {
+				icon = spinner_frames[new_spinner],
+			})
+			notif_data.spinner = new_spinner
 		end
 
 		vim.defer_fn(function()
-			update_spinner(notif_data)
+			update_spinner()
 		end, 100)
 	end
 end
@@ -36,18 +54,12 @@ local function handle_command_stream(error, data)
 	if data == nil then
 		return
 	end
-	vim.schedule(function()
-		if vim.tbl_isempty(notif_data) then
-			return
-		end
-		notify_opts = { title = title, replace = notif_data.notification }
-		notif_data.notification = vim.notify(string.gsub(data, "%s+$", "") .. "...", 2, notify_opts)
-	end)
+	notify_output(string.gsub(data, "%s+$", "") .. "...")
 end
 
 local function buildCallback(result)
 	if result.code ~= 0 and not vim.tbl_isempty(notif_data) then
-		notif_data.notification = vim.notify(
+		notify_output(
 			"Failed to build silicon. Exit code: " .. result.code,
 			4,
 			{ icon = "🞮", replace = notif_data.notification, timeout = 3000, title = "[Snap Build]" }
@@ -56,7 +68,7 @@ local function buildCallback(result)
 		return
 	end
 	if not vim.tbl_isempty(notif_data) then
-		notif_data.notification = vim.notify(
+		notify_output(
 			"Silicon installed successfully. Restart NeoVim to apply your config.",
 			2,
 			{ icon = "", replace = notif_data.notification, timeout = 3000, title = "[Snap Build]" }
@@ -75,19 +87,10 @@ function M.build()
 		return
 	end
 
-	notify_opts = {
-		title = title,
-		icon = spinner_frames[1],
-		timeout = false,
-	}
-	notif_data.notification = vim.notify( -- notify with percentage and message
-		"Starting build process...",
-		2,
-		notify_opts
-	)
+	notify_output("Starting build process...", 2, { icon = spinner_frames[1] })
 
 	if hasNvimNotify then
-		update_spinner(notif_data)
+		update_spinner()
 	end
 
 	vim.system({ "cargo", "install", "silicon" }, {
