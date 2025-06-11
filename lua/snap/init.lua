@@ -57,7 +57,7 @@ M.opts = {
 	hide_window_title = false,
 	background_colour = "#aaaaff",
 	background_image = nil,
-  line_offset = false,
+	line_offset = false,
 	line_pad = 2,
 	pad_h = 80,
 	pad_v = 100,
@@ -75,7 +75,8 @@ M.opts = {
 }
 
 M.themes = {}
-M.watermark_positions = { "North", "South", "East", "West", "NorthEast", "NorthWest", "SouthEast", "SouthWest", "Center", "Tile" }
+M.watermark_positions =
+	{ "North", "South", "East", "West", "NorthEast", "NorthWest", "SouthEast", "SouthWest", "Center", "Tile" }
 
 local helpers = require("snap.helpers")
 local silicon = require("snap.silicon")
@@ -224,7 +225,7 @@ local function mergeOpts(opts)
 	then
 		return false
 	end
-  
+
 	-- Theme
 	if mergedOpts.theme:match("^tmTheme://") then
 		local themeFile = vim.fn.expand(mergedOpts.theme:sub(11))
@@ -288,16 +289,10 @@ local function buildCommand(opts, linestart)
 
 	if opts.type == "clipboard" then
 		action = "copied image to clipboard"
-		if M.opts.watermark == nil then
-			table.insert(command, "--to-clipboard")
-		end
 	end
 
 	if opts.type == "file" then
 		action = "saved image to " .. opts.file_path
-		if M.opts.watermark == nil then
-			insert_all(command, "-o", opts.file_path)
-		end
 	end
 	insert_all(command, "--language", tostring(vim.bo.filetype))
 	if M.opts.hide_ln_numbers then
@@ -340,13 +335,11 @@ local function buildCommand(opts, linestart)
 	if M.opts.background_image ~= nil then
 		insert_all(command, "--background-image", vim.fn.expand(M.opts.background_image))
 	end
-	if M.opts.watermark ~= nil then
-		local tmpfile = vim.fn.tempname() .. opts.file_path:match("%.[a-zA-Z]+$")
-		insert_all(command, "-o", tmpfile)
-		return command, action, tmpfile
-	end
 
-	return command, action
+	local tmpfile = vim.fn.tempname() .. opts.file_path:match("%.[a-zA-Z]+$")
+	insert_all(command, "-o", tmpfile)
+
+	return command, action, tmpfile
 end
 
 local function pointSizeToRes(point_size)
@@ -399,7 +392,7 @@ local function standardWaterMark()
 	}):wait()
 end
 
-local function applyWaterMark(opts, tmpfile)
+local function applyWaterMark(tmpfile)
 	if not vim.fn.executable("magick") == 1 then
 		vim.notify("[Snap] magick is not installed. Please install it to use watermarks.", 4)
 		return false
@@ -431,6 +424,10 @@ local function applyWaterMark(opts, tmpfile)
 		vim.fn.delete(tmpfile)
 		return false
 	end
+	return true
+end
+
+local function copyOrMoveFile(opts, tmpfile)
 	if opts.type == "clipboard" then
 		if not assert(helpers.copyFileToClipboard(tmpfile), "Failed to copy image to clipboard") then
 			vim.fn.delete(tmpfile)
@@ -443,9 +440,10 @@ local function applyWaterMark(opts, tmpfile)
 			return false
 		end
 	end
-  if vim.fn.has('win32') == 1 and opts.type == "clipboard" then
-    return true
-  end
+	if vim.fn.has("win32") == 1 and opts.type == "clipboard" then
+		vim.fn.delete(tmpfile)
+		return true
+	end
 	vim.fn.delete(tmpfile)
 	return true
 end
@@ -481,8 +479,8 @@ local function takeSnap(options)
 	for option, val in options.args:gmatch("([^= ]+)=([^= ]+)") do
 		opts = vim.tbl_extend("keep", opts, { [option] = val })
 	end
-  
-  local lines, linestart, _ = helpers.getHighlightedLines(options.range, options.line1, options.line2)
+
+	local lines, linestart, _ = helpers.getHighlightedLines(options.range, options.line1, options.line2)
 	local highlightedText = table.concat(lines, "\n")
 	local default_path = ""
 
@@ -516,10 +514,15 @@ local function takeSnap(options)
 	local result = vim.system(command, { stdin = highlightedText }):wait()
 
 	if result.code == 0 and result.stderr == "" then -- Silicon doesn't always return a non-zero exit code on error
-		if tmpfile ~= nil then
-			if not applyWaterMark(opts, tmpfile) then
+		if M.opts.watermark ~= nil then
+			if not applyWaterMark(tmpfile) then
+				vim.notify("[Snap] Failed to apply watermark", 4)
 				return
 			end
+		end
+		if not copyOrMoveFile(opts, tmpfile) then
+			vim.notify("[Snap] Failed to copy or move generated image.", 4)
+			return
 		end
 		vim.notify("[Snap] Succesfully " .. action, 2)
 	else
@@ -540,8 +543,11 @@ function M.setup(opts)
 		return
 	end
 
-	if vim.fn.has('win32') == 1 and vim.fn.executable("file2clip.exe") ~= 1 then
-		vim.notify('[Snap] file2clip is not installed. Copying image to clipboard will fail. Please install it to use use that functionality.', vim.log.levels.WARN)
+	if vim.fn.has("win32") == 1 and vim.fn.executable("file2clip.exe") ~= 1 then
+		vim.notify(
+			"[Snap] file2clip is not installed. Copying image to clipboard will fail. Please install it to use use that functionality.",
+			vim.log.levels.WARN
+		)
 	end
 
 	M.themes = silicon.list_themes()
